@@ -3,14 +3,110 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Quest WebXR World</title>
+    <title>New VR Improvements | Quest WebXR World</title>
+    <meta name="description" content="New VR improvements demo: immersive WebXR world for Quest with multiplayer building, interactive portals, and internet-in-VR experiments." />
+    <meta name="keywords" content="new vr, vr improvements, vr improments, webxr, quest vr, metaverse, virtual reality" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://fitzyracing1.github.io/quest-vr-webxr/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="New VR Improvements | Quest WebXR World" />
+    <meta property="og:description" content="Explore new VR improvements in a multiplayer Quest WebXR world with internet portals and interactive building." />
+    <meta property="og:url" content="https://fitzyracing1.github.io/quest-vr-webxr/" />
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="New VR Improvements | Quest WebXR World" />
+    <meta property="twitter:description" content="A WebXR showcase focused on new VR improvements and internet-in-VR features." />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Quest VR WebXR",
+        "url": "https://fitzyracing1.github.io/quest-vr-webxr/",
+        "description": "New VR improvements in an immersive WebXR world for Quest.",
+        "keywords": ["new vr", "vr improvements", "vr improments", "webxr", "quest vr"]
+      }
+    </script>
     <style>
       body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
       #hud {
         position: fixed; top: 12px; left: 12px; z-index: 10;
         background: rgba(0,0,0,0.5); color: #fff; padding: 8px 10px; border-radius: 8px;
+        max-width: min(520px, 92vw);
       }
       #hud small { opacity: 0.8; }
+      #internetControls {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.25);
+      }
+      #internetControls input {
+        width: 230px;
+        max-width: 58vw;
+      }
+      #internetControls button {
+        margin-left: 4px;
+      }
+      #webDock {
+        position: fixed;
+        right: 12px;
+        top: 12px;
+        z-index: 20;
+        width: min(52vw, 780px);
+        height: min(72vh, 680px);
+        background: rgba(0, 0, 0, 0.88);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        overflow: hidden;
+        color: #fff;
+        display: none;
+      }
+      #webDockHeader {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 10px;
+        background: rgba(255,255,255,0.08);
+        font-size: 13px;
+      }
+      #webDockMeta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        overflow: hidden;
+      }
+      #dockCurrentUrl {
+        opacity: 0.85;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #webFrame {
+        width: 100%;
+        height: calc(100% - 38px);
+        border: 0;
+        background: #111;
+      }
+      #dockBlocked {
+        display: none;
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        background: rgba(0,0,0,0.82);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 8px;
+        padding: 8px;
+        font-size: 12px;
+      }
+      @media (max-width: 980px) {
+        #webDock {
+          right: 8px;
+          left: 8px;
+          width: auto;
+          height: 48vh;
+          top: auto;
+          bottom: 8px;
+        }
+      }
     </style>
     <!-- A-Frame core -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -29,9 +125,14 @@
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
     <!-- Socket.IO client served by our backend -->
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="/js/app.js" defer></script>
   </head>
   <body>
+    <header style="position: fixed; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden;">
+      <h1>New VR Improvements in Quest WebXR</h1>
+      <p>This project explores new VR and VR improments with multiplayer interaction, internet portals, and immersive WebXR navigation.</p>
+    </header>
     <div id="hud">
       <div><strong>Online:</strong> <span id="onlineCount">0</span></div>
       <div><strong>Easter Eggs Found:</strong> <span id="eggsFound">0</span> / 5</div>
@@ -56,6 +157,29 @@
       <small style="display:block; margin-top:4px; opacity:0.8;">Equation: x^2 − xℓ/b = c − 1mz; z = f; f = z</small>
       <small>Click to place blocks | Middle-click to remove | Shift+Click Easter eggs to collect</small>
       <div id="eggsList" style="font-size: 0.8em; margin-top: 5px; max-height: 80px; overflow-y: auto;"></div>
+      <div id="internetControls">
+        <div><strong>Internet In VR:</strong></div>
+        <div style="margin-top: 4px;">
+          <input id="urlInput" type="text" placeholder="Type a URL (example.com)" />
+          <button id="openUrlBtn" style="background: #1E88E5; color: #fff; padding: 2px 8px; cursor: pointer;">Open</button>
+          <button id="hideDockBtn" style="background: #424242; color: #fff; padding: 2px 8px; cursor: pointer;">Hide</button>
+        </div>
+        <small>Click in-world portal signs or type any URL. If a site blocks embedding, use Pop Out.</small>
+      </div>
+    </div>
+    <div id="webDock">
+      <div id="webDockHeader">
+        <div id="webDockMeta">
+          <strong>Infinity Web Dock</strong>
+          <span id="dockCurrentUrl">No page loaded</span>
+        </div>
+        <div>
+          <button id="popOutBtn" style="background: #00897B; color: #fff; padding: 2px 8px; cursor: pointer;">Pop Out</button>
+          <button id="closeDockBtn" style="background: #C62828; color: #fff; padding: 2px 8px; cursor: pointer;">Close</button>
+        </div>
+      </div>
+      <iframe id="webFrame" referrerpolicy="no-referrer" allow="clipboard-read; clipboard-write"></iframe>
+      <div id="dockBlocked">This site may block iframe embedding. Try Pop Out to open it in a separate tab.</div>
     </div>
     <a-scene renderer="antialias: true" vr-mode-ui="enabled: true">
       <!-- Player rig with movement controls (sticks on Quest) -->
@@ -147,6 +271,23 @@
         <a-box position="0 4 3.5" width="6" height="0.2" depth="1" color="#696969" opacity="0.8"></a-box>
         <a-box position="-3 4.5 3.5" width="0.2" height="1" depth="1" color="#696969"></a-box>
         <a-box position="3 4.5 3.5" width="0.2" height="1" depth="1" color="#696969"></a-box>
+      </a-entity>
+
+      <!-- Internet Portal Ring -->
+      <a-entity id="internet-portals" position="0 1.6 -8">
+        <a-plane class="internet-portal" data-url="https://wikipedia.org" data-label="Wikipedia" position="-4 1 0" width="2.8" height="1.6" color="#123D60"></a-plane>
+        <a-text value="Wikipedia" align="center" color="#E3F2FD" width="4" position="-4 1 0.02"></a-text>
+
+        <a-plane class="internet-portal" data-url="https://news.ycombinator.com" data-label="Hacker News" position="-1.3 1 0" width="2.8" height="1.6" color="#5D4037"></a-plane>
+        <a-text value="Hacker News" align="center" color="#FFF3E0" width="4" position="-1.3 1 0.02"></a-text>
+
+        <a-plane class="internet-portal" data-url="https://github.com" data-label="GitHub" position="1.3 1 0" width="2.8" height="1.6" color="#212121"></a-plane>
+        <a-text value="GitHub" align="center" color="#F5F5F5" width="4" position="1.3 1 0.02"></a-text>
+
+        <a-plane class="internet-portal" data-url="https://archive.org" data-label="Internet Archive" position="4 1 0" width="2.8" height="1.6" color="#37474F"></a-plane>
+        <a-text value="Internet Archive" align="center" color="#ECEFF1" width="4" position="4 1 0.02"></a-text>
+
+        <a-text value="Click any panel to open it in the Infinity Web Dock" align="center" color="#FFD54F" width="12" position="0 -0.25 0.02"></a-text>
       </a-entity>
 
       <!-- Container for placed blocks -->

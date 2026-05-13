@@ -6,7 +6,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const eggsFoundEl = document.getElementById('eggsFound');
   const eggsListEl = document.getElementById('eggsList');
   const scanBtn = document.getElementById('scanBtn');
-  const socket = io();
+  const socket = (() => {
+    if (typeof window.io === 'function') {
+      try {
+        return window.io();
+      } catch (err) {
+        console.warn('Socket.IO init failed, running offline mode:', err);
+      }
+    }
+    return {
+      id: 'offline',
+      emit: () => {},
+      on: () => {}
+    };
+  })();
   const blocksContainer = document.getElementById('blocks-container');
   const camera = document.getElementById('camera');
   const rig = document.getElementById('rig');
@@ -16,6 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const mathType = document.getElementById('mathType');
   const mathIntensity = document.getElementById('mathIntensity');
   const worldWrap = document.getElementById('world-math-wrap');
+  const urlInput = document.getElementById('urlInput');
+  const openUrlBtn = document.getElementById('openUrlBtn');
+  const hideDockBtn = document.getElementById('hideDockBtn');
+  const webDock = document.getElementById('webDock');
+  const closeDockBtn = document.getElementById('closeDockBtn');
+  const popOutBtn = document.getElementById('popOutBtn');
+  const webFrame = document.getElementById('webFrame');
+  const dockCurrentUrl = document.getElementById('dockCurrentUrl');
+  const dockBlocked = document.getElementById('dockBlocked');
   
   let selectedColor = '#F44'; // Red by default
   let blockIdCounter = 0;
@@ -27,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let apartmentDoor = null;
   let apartmentInterior = null;
   let mathEnabled = false;
+  let currentDockUrl = '';
   
   // Wait for VR controllers to load
   const sceneEl = document.querySelector('a-scene');
@@ -34,7 +57,69 @@ document.addEventListener('DOMContentLoaded', () => {
     setupVRControllers();
     setupApartmentBuilding();
     setupMathModeUI();
+    setupInternetDock();
   });
+
+  function normalizeUrl(input) {
+    if (!input || !input.trim()) return '';
+    const trimmed = input.trim();
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return '';
+    return `https://${trimmed}`;
+  }
+
+  function openInternetUrl(rawUrl) {
+    const safeUrl = normalizeUrl(rawUrl);
+    if (!safeUrl || !webFrame || !webDock) return;
+    currentDockUrl = safeUrl;
+    webDock.style.display = 'block';
+    dockCurrentUrl.textContent = safeUrl;
+    dockBlocked.style.display = 'none';
+    webFrame.setAttribute('src', safeUrl);
+  }
+
+  function setupInternetDock() {
+    if (openUrlBtn && urlInput) {
+      openUrlBtn.addEventListener('click', () => openInternetUrl(urlInput.value));
+      urlInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          openInternetUrl(urlInput.value);
+        }
+      });
+    }
+
+    if (hideDockBtn && webDock) {
+      hideDockBtn.addEventListener('click', () => {
+        webDock.style.display = 'none';
+      });
+    }
+
+    if (closeDockBtn && webDock && webFrame) {
+      closeDockBtn.addEventListener('click', () => {
+        webDock.style.display = 'none';
+        webFrame.setAttribute('src', 'about:blank');
+      });
+    }
+
+    if (popOutBtn) {
+      popOutBtn.addEventListener('click', () => {
+        if (currentDockUrl) window.open(currentDockUrl, '_blank', 'noopener,noreferrer');
+      });
+    }
+
+    if (webFrame) {
+      webFrame.addEventListener('load', () => {
+        setTimeout(() => {
+          if (webFrame.contentDocument && webFrame.contentDocument.body) {
+            dockBlocked.style.display = 'none';
+          } else {
+            dockBlocked.style.display = 'block';
+          }
+        }, 350);
+      });
+    }
+  }
 
   // Setup apartment building interactions
   function setupApartmentBuilding() {
@@ -331,6 +416,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Raycasting for block placement—use A-Frame raycaster events
   document.addEventListener('click', (event) => {
+    // Open internet portal panels before placing any block.
+    const portalEls = Array.from(document.querySelectorAll('.internet-portal'));
+    if (portalEls.length > 0) {
+      const portalRay = new THREE.Raycaster();
+      const camPos = camera.object3D.getWorldPosition(new THREE.Vector3());
+      const camDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.object3D.quaternion).normalize();
+      portalRay.ray.set(camPos, camDir);
+      const portalObjs = portalEls.map(el => el.object3D);
+      const portalHits = portalRay.intersectObjects(portalObjs);
+
+      if (portalHits.length > 0) {
+        const hitObj = portalHits[0].object;
+        const hitPortal = portalEls.find(el => el.object3D === hitObj);
+        if (hitPortal) {
+          const url = hitPortal.getAttribute('data-url');
+          const label = hitPortal.getAttribute('data-label') || url;
+          openInternetUrl(url);
+          console.log(`🌐 Opened portal: ${label}`);
+          return;
+        }
+      }
+    }
+
     // Check if Shift+click on an Easter egg
     if (event.shiftKey) {
       const raycaster = new THREE.Raycaster();

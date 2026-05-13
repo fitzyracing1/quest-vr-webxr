@@ -1,14 +1,29 @@
 {
   "name": "quest-vr-webxr",
   "version": "0.1.0",
-  "description": "WebXR site for Quest with Node.js backend and Socket.IO presence",
-  "private": true,
+  "description": "GitHub-ready WebXR + Socket.IO starter for Quest/browser VR experiences",
+  "private": false,
+  "license": "MIT",
   "scripts": {
+    "dev": "nodemon server.js",
     "start": "node server.js"
+  },
+  "keywords": [
+    "webxr",
+    "aframe",
+    "quest",
+    "socket.io",
+    "node"
+  ],
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

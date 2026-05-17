@@ -183,17 +183,19 @@
     </div>
     <a-scene renderer="antialias: true" vr-mode-ui="enabled: true">
       <!-- Player rig with movement controls (sticks on Quest) -->
-      <a-entity id="rig" movement-controls="fly: false" position="0 1.6 0">
+      <a-entity id="rig" movement-controls="fly: false" hand-locomotion position="0 1.6 0">
         <a-entity camera="near: 0.1" look-controls id="camera" raycaster="far: 100; objects: .buildable"></a-entity>
-        
-        <!-- VR Controllers -->
-        <a-entity id="leftHand" 
-          oculus-touch-controls="hand: left" 
+
+        <!-- VR Controllers / Hand Tracking -->
+        <a-entity id="leftHand"
+          oculus-touch-controls="hand: left"
+          hand-tracking-controls="hand: left; modelStyle: dots"
           laser-controls="hand: left"
           raycaster="far: 100; objects: .buildable"></a-entity>
-        
-        <a-entity id="rightHand" 
-          oculus-touch-controls="hand: right" 
+
+        <a-entity id="rightHand"
+          oculus-touch-controls="hand: right"
+          hand-tracking-controls="hand: right; modelStyle: dots"
           laser-controls="hand: right"
           raycaster="far: 100; objects: .buildable"></a-entity>
       </a-entity>

@@ -1,3 +1,58 @@
+// Arm-swing locomotion: moving both hands drives the player forward in the camera's facing direction.
+AFRAME.registerComponent('hand-locomotion', {
+  schema: {
+    speed:    { type: 'number', default: 3.5 },
+    deadzone: { type: 'number', default: 0.05 }  // m/s — filters controller jitter
+  },
+
+  init: function () {
+    this.leftPrev  = new THREE.Vector3();
+    this.rightPrev = new THREE.Vector3();
+    this.leftCur   = new THREE.Vector3();
+    this.rightCur  = new THREE.Vector3();
+    this.moveDir   = new THREE.Vector3();
+    this.ready     = false;
+  },
+
+  tick: function (time, delta) {
+    if (!delta) return;
+    const dt = delta / 1000;
+
+    const leftEl  = document.getElementById('leftHand');
+    const rightEl = document.getElementById('rightHand');
+    const camEl   = document.getElementById('camera');
+    if (!leftEl || !rightEl || !camEl) return;
+
+    leftEl.object3D.getWorldPosition(this.leftCur);
+    rightEl.object3D.getWorldPosition(this.rightCur);
+
+    if (!this.ready) {
+      this.leftPrev.copy(this.leftCur);
+      this.rightPrev.copy(this.rightCur);
+      this.ready = true;
+      return;
+    }
+
+    // Average hand speed (m/s)
+    const leftSpeed  = this.leftCur.distanceTo(this.leftPrev)  / dt;
+    const rightSpeed = this.rightCur.distanceTo(this.rightPrev) / dt;
+    const avgSpeed   = (leftSpeed + rightSpeed) / 2;
+
+    if (avgSpeed > this.data.deadzone) {
+      // Move horizontally in the direction the camera faces
+      camEl.object3D.getWorldDirection(this.moveDir);
+      this.moveDir.y = 0;
+      this.moveDir.normalize();
+
+      const moveAmount = Math.min(avgSpeed * this.data.speed * dt, 0.5);
+      this.el.object3D.position.addScaledVector(this.moveDir, moveAmount);
+    }
+
+    this.leftPrev.copy(this.leftCur);
+    this.rightPrev.copy(this.rightCur);
+  }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   // Wait for A-Frame to load and expose THREE
   let THREE = window.THREE || AFRAME.THREE;
